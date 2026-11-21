@@ -1,0 +1,252 @@
+{
+  "videoSrc": "http://127.0.0.1:3001/public/uploaded-clip.mp4",
+  "captions": [
+    {
+      "text": "Ketika",
+      "startMs": 1350,
+      "endMs": 2500,
+      "timestampMs": 1925,
+      "confidence": 0.99
+    },
+    {
+      "text": " semuanya",
+      "startMs": 2550,
+      "endMs": 3900,
+      "timestampMs": 3225,
+      "confidence": 0.99
+    },
+    {
+      "text": " terasa",
+      "startMs": 3950,
+      "endMs": 5000,
+      "timestampMs": 4475,
+      "confidence": 0.99
+    },
+    {
+      "text": " begitu",
+      "startMs": 5050,
+      "endMs": 6100,
+      "timestampMs": 5575,
+      "confidence": 0.99
+    },
+    {
+      "text": " abot",
+      "startMs": 6150,
+      "endMs": 7850,
+      "timestampMs": 7000,
+      "confidence": 0.98
+    },
+    {
+      "text": "Ku",
+      "startMs": 8500,
+      "endMs": 8900,
+      "timestampMs": 8700,
+      "confidence": 0.99
+    },
+    {
+      "text": " coba",
+      "startMs": 8900,
+      "endMs": 9750,
+      "timestampMs": 9325,
+      "confidence": 0.99
+    },
+    {
+      "text": " untuk",
+      "startMs": 9800,
+      "endMs": 11100,
+      "timestampMs": 10450,
+      "confidence": 0.98
+    },
+    {
+      "text": " tetap",
+      "startMs": 11600,
+      "endMs": 12550,
+      "timestampMs": 12075,
+      "confidence": 0.99
+    },
+    {
+      "text": " rapopo",
+      "startMs": 12600,
+      "endMs": 14700,
+      "timestampMs": 13650,
+      "confidence": 0.99
+    },
+    {
+      "text": "Di",
+      "startMs": 15500,
+      "endMs": 16000,
+      "timestampMs": 15750,
+      "confidence": 0.99
+    },
+    {
+      "text": " saat",
+      "startMs": 16000,
+      "endMs": 17150,
+      "timestampMs": 16575,
+      "confidence": 0.99
+    },
+    {
+      "text": " cinta",
+      "startMs": 17200,
+      "endMs": 18250,
+      "timestampMs": 17725,
+      "confidence": 0.99
+    },
+    {
+      "text": " ini",
+      "startMs": 18300,
+      "endMs": 19100,
+      "timestampMs": 18700,
+      "confidence": 0.99
+    },
+    {
+      "text": " terasa",
+      "startMs": 19100,
+      "endMs": 20350,
+      "timestampMs": 19725,
+      "confidence": 0.99
+    },
+    {
+      "text": " angel,",
+      "startMs": 20400,
+      "endMs": 22800,
+      "timestampMs": 21600,
+      "confidence": 0.98
+    },
+    {
+      "text": " angel",
+      "startMs": 24300,
+      "endMs": 27600,
+      "timestampMs": 25950,
+      "confidence": 0.97
+    },
+    {
+      "text": "Ku",
+      "startMs": 30100,
+      "endMs": 30500,
+      "timestampMs": 30300,
+      "confidence": 0.99
+    },
+    {
+      "text": " katakan",
+      "startMs": 30500,
+      "endMs": 31700,
+      "timestampMs": 31100,
+      "confidence": 0.99
+    },
+    {
+      "text": " dalam",
+      "startMs": 31700,
+      "endMs": 32650,
+      "timestampMs": 32175,
+      "confidence": 0.99
+    },
+    {
+      "text": " hati",
+      "startMs": 32700,
+      "endMs": 33450,
+      "timestampMs": 33075,
+      "confidence": 0.98
+    },
+    {
+      "text": " yo",
+      "startMs": 33500,
+      "endMs": 34150,
+      "timestampMs": 33825,
+      "confidence": 0.98
+    },
+    {
+      "text": " uwes",
+      "startMs": 34200,
+      "endMs": 36400,
+      "timestampMs": 35300,
+      "confidence": 0.98
+    },
+    {
+      "text": "Menurutmu",
+      "startMs": 37100,
+      "endMs": 39250,
+      "timestampMs": 38175,
+      "confidence": 0.99
+    },
+    {
+      "text": " aku",
+      "startMs": 39900,
+      "endMs": 40950,
+      "timestampMs": 40425,
+      "confidence": 0.99
+    },
+    {
+      "text": " kudu",
+      "startMs": 41000,
+      "endMs": 41950,
+      "timestampMs": 41475,
+      "confidence": 0.99
+    },
+    {
+      "text": " piye?",
+      "startMs": 42000,
+      "endMs": 43400,
+      "timestampMs": 42700,
+      "confidence": 0.99
+    },
+    {
+      "text": "Apakah",
+      "startMs": 44000,
+      "endMs": 45550,
+      "timestampMs": 44775,
+      "confidence": 0.99
+    },
+    {
+      "text": " aku",
+      "startMs": 45600,
+      "endMs": 46550,
+      "timestampMs": 46075,
+      "confidence": 0.99
+    },
+    {
+      "text": " harus",
+      "startMs": 46600,
+      "endMs": 47650,
+      "timestampMs": 47125,
+      "confidence": 0.99
+    },
+    {
+      "text": " mengikutimu?",
+      "startMs": 47700,
+      "endMs": 50100,
+      "timestampMs": 48900,
+      "confidence": 0.99
+    },
+    {
+      "text": "Yo",
+      "startMs": 50600,
+      "endMs": 51000,
+      "timestampMs": 50800,
+      "confidence": 0.99
+    },
+    {
+      "text": " aku",
+      "startMs": 51000,
+      "endMs": 51950,
+      "timestampMs": 51475,
+      "confidence": 0.99
+    },
+    {
+      "text": " mengkis",
+      "startMs": 52000,
+      "endMs": 52950,
+      "timestampMs": 52475,
+      "confidence": 0.99
+    },
+    {
+      "text": " mengkis",
+      "startMs": 53000,
+      "endMs": 55600,
+      "timestampMs": 54300,
+      "confidence": 0.98
+    }
+  ],
+  "offsetMs": 0,
+  "durationInFrames": 1692
+}
