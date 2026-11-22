@@ -8,6 +8,8 @@ import { resolveLyricStyle, type TemplateOverrides } from './templates';
 export type LyricClipProps = {
   videoSrc: string;
   captions: Caption[];
+  /** Judul project; dipakai untuk nama file hasil export, bukan dirender di video. */
+  title?: string;
   offsetMs?: number;
   durationInFrames: number;
   /** Output size; defaults to 1080x1920. Applied through calculateMetadata. */

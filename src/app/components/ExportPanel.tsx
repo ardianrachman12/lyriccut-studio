@@ -144,7 +144,8 @@ export const ExportPanel: React.FC<Props> = ({
             <CheckCircle2 className="w-4 h-4" />
             Selesai — {formatBytes(result.bytes)}
           </div>
-          <div className="font-mono text-slate-200 break-all">{result.outputName}</div>
+          <div className="font-medium text-slate-100 break-all">{result.title}</div>
+          <div className="font-mono text-[11px] text-slate-400 break-all">{result.outputName}</div>
           <div className="flex items-start gap-2">
             <span className="shrink-0 text-slate-400">Server</span>
             <span className="flex-1 font-mono text-[11px] text-slate-300 break-all">

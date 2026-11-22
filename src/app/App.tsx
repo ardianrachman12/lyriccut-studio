@@ -32,6 +32,7 @@ import { TemplatePicker } from './components/TemplatePicker';
 import { OverridePanel } from './components/OverridePanel';
 import { AspectRatioPanel } from './components/AspectRatioPanel';
 import { OffsetControl } from './components/OffsetControl';
+import { TitleInput } from './components/TitleInput';
 import { ExportPanel } from './components/ExportPanel';
 
 const STYLE_STORAGE_KEY = 'lyriccut:style';
@@ -64,6 +65,7 @@ export default function App() {
     JSON.stringify(DEFAULT_CAPTIONS, null, 2)
   );
   const [offsetMs, setOffsetMs] = useState<number>(0);
+  const [title, setTitle] = useState<string>('');
   const [aspect, setAspect] = useState<AspectSetting>(loadStoredAspect);
   const [videoDims, setVideoDims] = useState<VideoDims | null>(null);
   const [templateId, setTemplateId] = useState<string>(() => loadStoredStyle().templateId);
@@ -208,6 +210,7 @@ export default function App() {
     setUploadMessage('');
     setCaptionsText(JSON.stringify(DEFAULT_CAPTIONS, null, 2));
     setOffsetMs(0);
+    setTitle('');
     renderControllerRef.current?.abort();
     renderControllerRef.current = null;
     setRenderError('');
@@ -330,6 +333,7 @@ export default function App() {
       const payload: LyricClipProps = {
         videoSrc: 'uploaded-clip.mp4',
         captions: validation.captions,
+        title,
         offsetMs,
         durationInFrames,
         width: outputSize.width,
@@ -465,6 +469,10 @@ export default function App() {
           <div className="h-px bg-white/[0.07]" />
 
           <OffsetControl offsetMs={offsetMs} onChange={setOffsetMs} />
+
+          <div className="h-px bg-white/[0.07]" />
+
+          <TitleInput title={title} onChange={setTitle} />
 
           <ExportPanel
             isRendering={isRendering}

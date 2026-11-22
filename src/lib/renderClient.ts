@@ -13,6 +13,7 @@ export type RenderProgress = {
 };
 
 export type RenderResult = {
+  title: string;
   outputName: string;
   outputPath: string;
   downloadUrl: string;
@@ -33,6 +34,7 @@ export type RenderEvent =
     }
   | {
       type: 'done';
+      title: string;
       outputName: string;
       outputPath: string;
       downloadUrl: string;

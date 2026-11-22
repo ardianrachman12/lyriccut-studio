@@ -14,7 +14,8 @@ const OUT_DIR = path.join(ROOT_DIR, 'out');
 const UPLOADED_CLIP_NAME = 'uploaded-clip.mp4';
 const RENDER_PROPS_PATH = path.join(ROOT_DIR, '.render-props.json');
 const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-const OUTPUT_NAME_PATTERN = /^lyric-clip-\d+x\d+-\d{8}-\d{6}\.mp4$/;
+const OUTPUT_NAME_PATTERN = /^[\p{L}\p{N}._-]{1,60}-\d{8}-\d{6}\.mp4$/u;
+const WINDOWS_RESERVED = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i;
 
 // Satu render aktif per server. Dipakai sebagai guard Request 409.
 let activeRenderAbort = null;
@@ -29,11 +30,27 @@ const sanitizeSize = (rawWidth, rawHeight) => {
   return ok(w) && ok(h) ? { width: w, height: h } : DEFAULT_SIZE;
 };
 
-const makeOutputName = (size) => {
+// Sanitasi judul dipakai sebagai basename. Client hanya memberi preview;
+// server tetap menjadi sumber kebenaran untuk nama file.
+const sanitizeTitle = (raw) => {
+  const base =
+    typeof raw === 'string'
+      ? raw
+          .trim()
+          .replace(/[^\p{L}\p{N}._-]+/gu, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 60)
+          .replace(/-+$/g, '')
+      : '';
+  return base && !WINDOWS_RESERVED.test(base) ? base : 'lyric-clip';
+};
+
+const makeOutputName = (title) => {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-  return `lyric-clip-${size.width}x${size.height}-${stamp}.mp4`;
+  return `${sanitizeTitle(title)}-${stamp}.mp4`;
 };
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
@@ -256,9 +273,11 @@ const server = http.createServer(async (req, res) => {
 
       const publicVideoUrl = `http://127.0.0.1:${PORT}/uploads/${cleanName}`;
       const size = sanitizeSize(body.width, body.height);
+      const resolvedTitle = sanitizeTitle(body.title);
       const renderProps = {
         videoSrc: publicVideoUrl,
         captions: Array.isArray(body.captions) ? body.captions : [],
+        title: resolvedTitle,
         offsetMs: Number(body.offsetMs) || 0,
         width: size.width,
         height: size.height,
@@ -269,7 +288,7 @@ const server = http.createServer(async (req, res) => {
 
       fs.writeFileSync(RENDER_PROPS_PATH, JSON.stringify(renderProps, null, 2), 'utf8');
 
-      const outputName = makeOutputName(size);
+      const outputName = makeOutputName(resolvedTitle);
       const outputPath = path.join(OUT_DIR, outputName);
 
       controller = new AbortController();
@@ -324,9 +343,10 @@ const server = http.createServer(async (req, res) => {
         completed = true;
         emit({
           type: 'done',
+          title: resolvedTitle,
           outputName,
           outputPath,
-          downloadUrl: `/api/render/output/${outputName}`,
+          downloadUrl: `/api/render/output/${encodeURIComponent(outputName)}`,
           bytes: result.bytes,
         });
       } finally {

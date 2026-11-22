@@ -10,7 +10,7 @@ LyricCut Studio adalah aplikasi web untuk membuat video lirik secara otomatis da
 - **📺 Live Preview**: Lihat perubahan gaya, posisi, dan lirik secara real-time melalui Remotion Player yang terintegrasi.
 - **🎨 Kustomisasi Gaya**: Berbagai pilihan template lirik, pengaturan skala font, warna primer, dan posisi vertikal yang fleksibel.
 - **📱 Dukungan Berbagai Rasio**: Preset untuk Shorts/Reels (9:16), Instagram (4:5), Square (1:1), hingga Widescreen (16:9).
-- **🚀 Export MP4**: Rendering video hasil akhir menjadi MP4 via server lokal Node.js, dengan progress real-time, estimasi waktu, pembatalan render, dan informasi lokasi file hasil.
+- **🚀 Export MP4**: Rendering video hasil akhir menjadi MP4 via server lokal Node.js, dengan progress real-time, estimasi waktu, pembatalan render, dan informasi lokasi file hasil. Nama file mengikuti input **Title** (opsional) plus timestamp.
 - **📝 Editor JSON**: Kemampuan untuk mengedit manual hasil sinkronisasi lirik untuk mencapai presisi maksimal.
 - **🕒 Offset Control**: Geser seluruh waktu lirik dengan mudah jika terdapat delay pada audio.
 
@@ -86,6 +86,7 @@ Klik dua kali shortcut **LyricCut Studio** di Desktop untuk menjalankan server d
    - Gunakan **Offset Control** jika lirik terasa mendahului atau tertinggal dari audio.
 
 3. **Export**:
+   - Isi **Title** (opsional). Judul dipakai sebagai nama file: spasi diganti `-`, timestamp ditambahkan otomatis, dan karakter yang tidak aman dibersihkan.
    - Klik **"Export Video (MP4)"**.
    - Panel progress menampilkan tahapan, persentase, jumlah frame, dan estimasi waktu. Klik **"Batalkan render"** jika perlu.
    - Setelah selesai, file otomatis terunduh. Kartu hasil menampilkan path file di `out/`, tombol **Copy**, **Download lagi**, **Buka folder hasil**, dan **Buka Downloads** (Windows).

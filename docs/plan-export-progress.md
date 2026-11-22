@@ -67,7 +67,7 @@ Response memakai `Content-Type: application/x-ndjson`, satu objek JSON per baris
 {"type":"start","outputName":"lyric-clip-1080x1920-20261122-143052.mp4","outputPath":"D:\\coding\\react-project\\lyriccut-studio\\out\\lyric-clip-1080x1920-20261122-143052.mp4"}
 {"type":"phase","phase":"bundling"}
 {"type":"progress","progress":0.42,"renderedFrames":184,"encodedFrames":150,"totalFrames":438,"stitchStage":"encoding","etaMs":18500}
-{"type":"done","outputName":"lyric-clip-1080x1920-20261122-143052.mp4","outputPath":"D:\\...\\out\\lyric-clip-1080x1920-20261122-143052.mp4","downloadUrl":"/api/render/output/lyric-clip-1080x1920-20261122-143052.mp4","bytes":12345678}
+{"type":"done","title":"Lagu Cinta Ku","outputName":"Lagu-Cinta-Ku-20261122-143052.mp4","outputPath":"D:\\...\\out\\Lagu-Cinta-Ku-20261122-143052.mp4","downloadUrl":"/api/render/output/Lagu-Cinta-Ku-20261122-143052.mp4","bytes":12345678}
 {"type":"error","message":"Render gagal: ..."}
 ```
 
@@ -146,13 +146,13 @@ Detail:
 - `ExportPanel.tsx`:
   - Props baru: `progress`, `result`, `onCancel`, `onReveal`.
   - Saat render: progress bar + persentase + phase + frame + ETA + elapsed + tombol **Cancel**.
-  - Saat selesai: kartu hasil berisi nama file, path server (tombol **Copy path**), tombol **Download lagi**, tombol **Buka folder hasil** dan **Buka Downloads** (memanggil `POST /api/render/reveal`), serta catatan folder Downloads browser.
+  - Saat selesai: kartu hasil berisi **judul** (dari event `done`), nama file hasil, path server (tombol **Copy path**), tombol **Download lagi**, tombol **Buka folder hasil** dan **Buka Downloads** (memanggil `POST /api/render/reveal`), serta catatan folder Downloads browser. Detail judul ada di [`plan-title-input.md`](plan-title-input.md).
   - Aksesibilitas: `role="progressbar"`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax`.
 
 ### 4.6 Menampilkan lokasi hasil
 
 Yang bisa ditampilkan dengan akurat:
-- **Path server**: dari event `done` (`outputPath`), misalnya `D:\coding\react-project\lyriccut-studio\out\lyric-clip-....mp4`. Ini yang paling jelas.
+- **Path server**: dari event `done` (`outputPath`), misalnya `D:\coding\react-project\lyriccut-studio\out\Lagu-Cinta-Ku-20261122-143052.mp4`. Ini yang paling jelas.
 - **Path browser**: browser tidak memberi tahu folder download. UI hanya bisa menulis "Salinan juga diunduh ke folder Downloads browser."
 
 Peningkatan yang dipilih:
@@ -180,7 +180,8 @@ Export Video (MP4)
 
 Selesai
 ┌─────────────────────────────────────────────┐
-│ ✓ lyric-clip-1080x1920-20261122-143052.mp4  │
+│ ✓ Lagu Cinta Ku                               │
+│   Lagu-Cinta-Ku-20261122-143052.mp4          │
 │ Server: D:\...\out\lyric-clip-...mp4  [Copy]│
 │ Salinan diunduh ke folder Downloads browser │
 │ [Download lagi] [Buka folder hasil] [Buka Downloads] │
