@@ -1,6 +1,6 @@
 # Plan: Halaman Generate Lirik (Gemini)
 
-Status: **Draft, belum dikerjakan**
+Status: **Selesai. Keputusan: audio diupload terpisah (opsi C), model `gemini-3.5-flash-lite`, hash routing (`#/lyrics`), Whisper ditunda.**
 Tanggal: 2026-11-21
 
 ## 1. Tujuan
@@ -114,7 +114,8 @@ lyriccut-studio/
       └─ components/
          ├─ AudioSourcePicker.tsx
          ├─ LyricsInput.tsx
-         └─ GeneratedResult.tsx
+         ├─ GeneratedResult.tsx
+         └─ HistoryPanel.tsx          # riwayat generate (bagian 13)
 ```
 
 Routing: cukup **hash routing** sederhana (`#/` studio, `#/lyrics` generator), jadi tidak perlu menambah dependency router. Header studio dan generator saling menaut.
@@ -152,7 +153,17 @@ Routing: cukup **hash routing** sederhana (`#/` studio, `#/lyrics` generator), j
 - Bandingkan sebagian timestamp dengan audio secara manual (mendengar, bukan hanya melihat angka), dan catat rata-rata selisih sebagai gambaran akurasi.
 - Pastikan key tidak muncul di hasil `vite build` (`dist/`) maupun di respons API.
 
-## 13. Pertanyaan terbuka
+## 13. Riwayat generate (tambahan)
+
+Status: **Selesai.** Disimpan di `localStorage` browser (kunci `lyriccut:lyrics-history`).
+
+- Per entri: waktu, nama file audio, lirik input, dan hasil (caption, peringatan, model, durasi). File audio tidak disimpan.
+- Disimpan terbaru di atas, maksimal 30 entri. Kalau kuota `localStorage` penuh, entri terlama dibuang otomatis.
+- Panel "Riwayat" ada di bawah hasil. Klik entri untuk membuka lagi lirik dan hasilnya (tanpa memanggil Gemini), lalu bisa Copy, Download, atau Kirim ke Studio. Ada hapus per entri dan "Hapus semua" (dengan konfirmasi).
+- Riwayat hanya ada di browser tersebut. Membersihkan data browser menghapusnya.
+- File: `src/lib/lyricsHistory.ts`, `src/app/components/HistoryPanel.tsx`, dan integrasi di `LyricGeneratorPage.tsx`.
+
+## 14. Pertanyaan terbuka (sudah terjawab)
 
 1. **Sumber audio:** opsi B (ekstrak dari klip studio) + C (upload audio terpisah), atau salah satu saja?
 2. **Model Gemini:** ada preferensi? Kalau tidak, saya pilih model terbaru yang mendukung audio dan tersedia di key kamu.

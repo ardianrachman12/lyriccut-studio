@@ -1,7 +1,9 @@
+import 'dotenv/config';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { handleLyricsRoute } from './server/lyricsRoutes.mjs';
 
 const PORT = 3001;
 const ROOT_DIR = process.cwd();
@@ -179,6 +181,10 @@ const server = http.createServer(async (req, res) => {
     (pathname === `/uploads/${UPLOADED_CLIP_NAME}` || pathname === `/${UPLOADED_CLIP_NAME}`)
   ) {
     serveMp4WithRange(req, res, path.join(UPLOADS_DIR, UPLOADED_CLIP_NAME));
+    return;
+  }
+
+  if (await handleLyricsRoute(req, res, pathname, sendJson)) {
     return;
   }
 

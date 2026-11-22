@@ -10,6 +10,7 @@ import {
 } from '../remotion/templates';
 import { DEFAULT_CAPTIONS, DEFAULT_DURATION_FRAMES } from '../data/defaultCaptions';
 import { validateCaptionsJson } from '../lib/captions';
+import { IMPORT_CAPTIONS_EVENT } from '../lib/lyricsApi';
 import {
   COMPOSITION_HEIGHT,
   COMPOSITION_WIDTH,
@@ -79,6 +80,15 @@ export default function App() {
       // storage unavailable; ignore
     }
   }, [templateId, overrides]);
+
+  useEffect(() => {
+    const onImport = (e: Event) => {
+      const detail = (e as CustomEvent<string>).detail;
+      if (typeof detail === 'string') setCaptionsText(detail);
+    };
+    window.addEventListener(IMPORT_CAPTIONS_EVENT, onImport);
+    return () => window.removeEventListener(IMPORT_CAPTIONS_EVENT, onImport);
+  }, []);
 
   const validation = useMemo(() => validateCaptionsJson(captionsText), [captionsText]);
   const [lastValidCaptions, setLastValidCaptions] = useState<Caption[]>(DEFAULT_CAPTIONS);
@@ -284,6 +294,13 @@ export default function App() {
           <span aria-hidden="true">·</span>
           <span>{durationInFrames} frames ({formatDurationSec(durationInFrames)}s)</span>
         </div>
+
+        <a
+          href="#/lyrics"
+          className="ml-auto inline-flex items-center px-3 py-1.5 text-xs font-medium text-sky-300 hover:text-sky-200 border border-sky-400/30 hover:border-sky-400/60 rounded-md transition-colors whitespace-nowrap shrink-0"
+        >
+          Generate Lirik
+        </a>
 
         <button
           type="button"
