@@ -5,10 +5,11 @@ import { spawn } from 'node:child_process';
 
 const PORT = 3001;
 const ROOT_DIR = process.cwd();
-const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
+const UPLOADS_DIR = path.join(ROOT_DIR, 'uploads');
 const OUT_DIR = path.join(ROOT_DIR, 'out');
 const UPLOADED_CLIP_NAME = 'uploaded-clip.mp4';
 const RENDER_PROPS_PATH = path.join(ROOT_DIR, '.render-props.json');
+const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const makeOutputName = () => {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
@@ -146,9 +147,18 @@ const runRemotionRender = (outputName) =>
   });
 
 const server = http.createServer(async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Only local browser origins may call this server.
+  const origin = req.headers.origin;
+  if (origin) {
+    if (!LOCAL_ORIGIN.test(origin)) {
+      sendJson(res, 403, { error: 'Origin not allowed.' });
+      return;
+    }
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-File-Name');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -166,15 +176,15 @@ const server = http.createServer(async (req, res) => {
 
   if (
     req.method === 'GET' &&
-    (pathname === `/public/${UPLOADED_CLIP_NAME}` || pathname === `/${UPLOADED_CLIP_NAME}`)
+    (pathname === `/uploads/${UPLOADED_CLIP_NAME}` || pathname === `/${UPLOADED_CLIP_NAME}`)
   ) {
-    serveMp4WithRange(req, res, path.join(PUBLIC_DIR, UPLOADED_CLIP_NAME));
+    serveMp4WithRange(req, res, path.join(UPLOADS_DIR, UPLOADED_CLIP_NAME));
     return;
   }
 
   if (req.method === 'POST' && pathname === '/api/upload') {
-    ensureDir(PUBLIC_DIR);
-    const destPath = path.join(PUBLIC_DIR, UPLOADED_CLIP_NAME);
+    ensureDir(UPLOADS_DIR);
+    const destPath = path.join(UPLOADS_DIR, UPLOADED_CLIP_NAME);
     const writeStream = fs.createWriteStream(destPath);
 
     let finished = false;
@@ -209,21 +219,21 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && pathname === '/api/render') {
     try {
       const body = await readJsonBody(req);
-      ensureDir(PUBLIC_DIR);
+      ensureDir(UPLOADS_DIR);
       ensureDir(OUT_DIR);
 
       const requestedSrc = typeof body.videoSrc === 'string' ? body.videoSrc : UPLOADED_CLIP_NAME;
       const cleanName = path.basename(requestedSrc) || UPLOADED_CLIP_NAME;
-      const publicFilePath = path.join(PUBLIC_DIR, cleanName);
+      const uploadFilePath = path.join(UPLOADS_DIR, cleanName);
 
-      if (!fs.existsSync(publicFilePath)) {
+      if (!fs.existsSync(uploadFilePath)) {
         sendJson(res, 400, {
           error: 'No uploaded video found on server. Please attach an MP4 file first.',
         });
         return;
       }
 
-      const publicVideoUrl = `http://127.0.0.1:${PORT}/public/${cleanName}`;
+      const publicVideoUrl = `http://127.0.0.1:${PORT}/uploads/${cleanName}`;
       const renderProps = {
         videoSrc: publicVideoUrl,
         captions: Array.isArray(body.captions) ? body.captions : [],
@@ -263,6 +273,6 @@ const server = http.createServer(async (req, res) => {
   sendJson(res, 404, { error: 'Not found' });
 });
 
-server.listen(PORT, () => {
-  console.log(`Local Remotion render server listening on http://localhost:${PORT}`);
+server.listen(PORT, '127.0.0.1', () => {
+  console.log(`Local Remotion render server listening on http://127.0.0.1:${PORT}`);
 });

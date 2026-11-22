@@ -127,7 +127,7 @@ export default function App() {
       }
 
       setUploadStatus('uploaded');
-      setUploadMessage('Synced to server as public/uploaded-clip.mp4');
+      setUploadMessage('Synced to server as uploads/uploaded-clip.mp4');
     } catch {
       setUploadStatus('error');
       setUploadMessage(
