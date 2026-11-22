@@ -1,46 +1,109 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# 🎬 LyricCut Studio
 
-# Run and deploy your AI Studio app
+LyricCut Studio adalah aplikasi web untuk membuat video lirik secara otomatis dan profesional. Proyek ini menggabungkan kekuatan **Remotion** untuk rendering video berbasis React dan **Google Gemini AI** untuk sinkronisasi lirik otomatis yang presisi.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/b338921a-2227-4ba5-9b33-7d7b36f2e51e
+## ✨ Fitur Utama
 
-## Run Locally
+- **🤖 AI Lyric Sync**: Menghasilkan timestamp lirik secara otomatis dari file audio menggunakan Google Gemini AI (Gemini 2.0 Flash Lite).
+- **📺 Live Preview**: Lihat perubahan gaya, posisi, dan lirik secara real-time melalui Remotion Player yang terintegrasi.
+- **🎨 Kustomisasi Gaya**: Berbagai pilihan template lirik, pengaturan skala font, warna primer, dan posisi vertikal yang fleksibel.
+- **📱 Dukungan Berbagai Rasio**: Preset untuk Shorts/Reels (9:16), Instagram (4:5), Square (1:1), hingga Widescreen (16:9).
+- **🚀 Export MP4**: Rendering video hasil akhir langsung menjadi file MP4 menggunakan server lokal Node.js.
+- **📝 Editor JSON**: Kemampuan untuk mengedit manual hasil sinkronisasi lirik untuk mencapai presisi maksimal.
+- **🕒 Offset Control**: Geser seluruh waktu lirik dengan mudah jika terdapat delay pada audio.
 
-**Prerequisites:**  Node.js
+---
 
+## 🛠️ Teknologi yang Digunakan
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+- **Frontend**: [React 19](https://react.dev/), [Vite](https://vitejs.dev/), [Tailwind CSS](https://tailwindcss.com/)
+- **Video Engine**: [Remotion](https://www.remotion.dev/)
+- **AI**: [Google Generative AI (Gemini)](https://ai.google.dev/)
+- **Backend**: Node.js (HTTP Server)
+- **Icons**: [Lucide React](https://lucide.dev/)
 
-## Struktur folder
+---
 
+## 🚀 Memulai (Local Setup)
+
+### Prasyarat
+
+- [Node.js](https://nodejs.org/) (versi terbaru direkomendasikan)
+- [Bun](https://bun.sh/) atau NPM
+- Google Gemini API Key (Dapatkan di [Google AI Studio](https://aistudio.google.com/))
+
+### Instalasi
+
+1. **Clone repositori**
+2. **Instal dependensi**:
+   ```bash
+   npm install
+   ```
+3. **Konfigurasi Environment**:
+   Salin file `.env.example` menjadi `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+   Lalu masukkan API Key Gemini Anda:
+   ```env
+   GEMINI_API_KEY=your_api_key_here
+   ```
+
+### Menjalankan Aplikasi
+
+Gunakan perintah berikut untuk menjalankan frontend dan backend secara bersamaan:
+
+```bash
+npm run local
 ```
-docs/                       Dokumentasi dan plan
-public/                     Video upload (uploaded-clip.mp4)
-out/                        Hasil export (nama unik per export: lyric-clip-YYYYMMDD-HHMMSS.mp4)
-server.mjs                  Server lokal: upload + render Remotion
-src/app/                    UI (App.tsx + components/)
-src/lib/                    Validasi caption, helper format
-src/data/                   Caption contoh
-src/remotion/               Komposisi Remotion
-  components/               EmptyClipBackdrop, LyricStage
-  templates/                Template gaya lirik (types, definitions, index)
-```
 
-## Template gaya lirik
+- **Frontend**: `http://localhost:5173` (script `local` memanggil `vite` tanpa `--port`)
+- **Render Server**: `http://localhost:3001`
 
-Pilih template di panel "03. Lyric Style", lalu atur override ringan: ukuran font, warna utama (kata aktif), dan posisi vertikal. Pilihan disimpan di `localStorage`, dan dikirim ke server saat export (`templateId`, `overrides`).
+> Kalau memakai `npm run dev`, frontend berjalan di `http://localhost:3000`.
 
-Menambah template baru:
+### Shortcut Desktop (Windows)
 
-1. Tambah objek `LyricTemplate` di `src/remotion/templates/definitions.ts` (font lewat `@remotion/google-fonts`).
-2. Daftarkan di `LYRIC_TEMPLATES` pada `src/remotion/templates/index.ts`.
+Klik dua kali shortcut **LyricCut Studio** di Desktop untuk menjalankan server dan membuka browser otomatis. Detail dan cara membuat ulang shortcut ada di [`docs/shortcut-desktop.md`](docs/shortcut-desktop.md).
 
-Template tidak dikenal otomatis fallback ke `sky-karaoke`.
+---
+
+## 📖 Cara Penggunaan
+
+1. **Generate Lirik**:
+   - Buka halaman **"Generate Lirik"** via tombol di header.
+   - Unggah file audio (MP3/WAV).
+   - Tempel teks lirik mentah.
+   - Klik **"Generate Caption"**. AI akan menganalisis audio dan memberikan timestamp.
+   - Klik **"Kirim ke Studio"**.
+
+2. **Editing di Studio**:
+   - Unggah file video background (MP4).
+   - Pilih template gaya lirik di panel **"Lyric Style"**.
+   - Atur **Aspect Ratio** sesuai platform tujuan (TikTok, Instagram, YouTube).
+   - Gunakan **Offset Control** jika lirik terasa mendahului atau tertinggal dari audio.
+
+3. **Export**:
+   - Klik **"Render & Download MP4"**.
+   - Server akan memproses video dan otomatis mengunduh hasilnya setelah selesai.
+
+---
+
+## 📁 Struktur Folder
+
+- `src/app/`: Kode sumber aplikasi React (UI/Frontend).
+- `src/remotion/`: Komposisi video, template lirik, dan logika rendering Remotion.
+- `server/`: Modul backend untuk integrasi Gemini AI dan normalisasi caption.
+- `server.mjs`: Entry point server lokal (Upload, Render, & API).
+- `docs/`: Dokumentasi perubahan dan rencana pengembangan.
+- `uploads/`: Penyimpanan sementara video yang diunggah (diabaikan oleh Git).
+- `public/`: Aset statis aplikasi.
+- `out/`: Folder hasil render MP4.
+
+
+---
+
+Dibuat dengan ❤️ menggunakan **Remotion** dan **Gemini AI**.
+
