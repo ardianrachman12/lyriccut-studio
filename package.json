@@ -13,10 +13,12 @@
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
+    "@remotion/bundler": "^4.0.545",
     "@remotion/captions": "^4.0.545",
     "@remotion/cli": "^4.0.545",
     "@remotion/google-fonts": "^4.0.545",
     "@remotion/player": "^4.0.545",
+    "@remotion/renderer": "^4.0.545",
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^6.1.1",
     "dotenv": "^17.2.3",

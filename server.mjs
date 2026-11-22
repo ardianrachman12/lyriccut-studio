@@ -1,9 +1,11 @@
 import 'dotenv/config';
 import http from 'node:http';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { handleLyricsRoute } from './server/lyricsRoutes.mjs';
+import { renderClip } from './server/render.mjs';
 
 const PORT = 3001;
 const ROOT_DIR = process.cwd();
@@ -12,6 +14,10 @@ const OUT_DIR = path.join(ROOT_DIR, 'out');
 const UPLOADED_CLIP_NAME = 'uploaded-clip.mp4';
 const RENDER_PROPS_PATH = path.join(ROOT_DIR, '.render-props.json');
 const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const OUTPUT_NAME_PATTERN = /^lyric-clip-\d+x\d+-\d{8}-\d{6}\.mp4$/;
+
+// Satu render aktif per server. Dipakai sebagai guard Request 409.
+let activeRenderAbort = null;
 
 const DEFAULT_SIZE = { width: 1080, height: 1920 };
 
@@ -62,6 +68,11 @@ const sendJson = (res, statusCode, payload) => {
     'Content-Length': Buffer.byteLength(body),
   });
   res.end(body);
+};
+
+// NDJSON: satu objek JSON per baris, supaya UI bisa membaca progress secara streaming.
+const sendEvent = (res, payload) => {
+  res.write(`${JSON.stringify(payload)}\n`);
 };
 
 const readJsonBody = (req) =>
@@ -120,44 +131,28 @@ const serveMp4WithRange = (req, res, filePath) => {
   }
 };
 
-const runRemotionRender = (outputName) =>
-  new Promise((resolve, reject) => {
-    const args = [
-      'remotion',
-      'render',
-      'src/remotion/index.ts',
-      'LyricClip',
-      `out/${outputName}`,
-      '--props=.render-props.json',
-    ];
+const safeOutputPath = (name) => {
+  if (typeof name !== 'string' || !OUTPUT_NAME_PATTERN.test(name)) {
+    return null;
+  }
+  const filePath = path.join(OUT_DIR, name);
+  const relative = path.relative(OUT_DIR, filePath);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    return null;
+  }
+  return filePath;
+};
 
-    const child = spawn('npx', args, {
-      cwd: ROOT_DIR,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      shell: process.platform === 'win32',
-    });
-
-    let stderr = '';
-    child.stdout.on('data', (chunk) => {
-      process.stdout.write(chunk);
-    });
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
-      process.stderr.write(chunk);
-    });
-
-    child.on('error', (err) => {
-      reject(err);
-    });
-
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`Remotion render exited with code ${code}: ${stderr.slice(-1000)}`));
-      }
-    });
+const revealInExplorer = (targetPath, selectFile) => {
+  const args = selectFile ? [`/select,${targetPath}`] : [targetPath];
+  const child = spawn('explorer.exe', args, {
+    cwd: ROOT_DIR,
+    stdio: 'ignore',
+    detached: true,
   });
+  child.on('error', () => {});
+  child.unref();
+};
 
 const server = http.createServer(async (req, res) => {
   // Only local browser origins may call this server (it spends the Gemini quota).
@@ -234,6 +229,15 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pathname === '/api/render') {
+    if (activeRenderAbort) {
+      sendJson(res, 409, {
+        error: 'Render sedang berjalan. Tunggu selesai atau batalkan render sebelumnya.',
+      });
+      return;
+    }
+
+    let controller = null;
+
     try {
       const body = await readJsonBody(req);
       ensureDir(UPLOADS_DIR);
@@ -267,24 +271,130 @@ const server = http.createServer(async (req, res) => {
 
       const outputName = makeOutputName(size);
       const outputPath = path.join(OUT_DIR, outputName);
-      await runRemotionRender(outputName);
 
-      if (!fs.existsSync(outputPath)) {
-        sendJson(res, 500, { error: 'Render finished but output MP4 was not found.' });
-        return;
-      }
+      controller = new AbortController();
+      activeRenderAbort = controller;
 
-      const stat = fs.statSync(outputPath);
+      let finished = false;
+      let completed = false;
+      let lastEventAt = 0;
+      let lastProgressSent = -1;
+
+      const emit = (payload) => {
+        if (!res.destroyed && !res.writableEnded) sendEvent(res, payload);
+      };
+
+      const onClientClose = () => {
+        if (!finished && !res.writableEnded) controller.abort();
+      };
+      res.on('close', onClientClose);
+
       res.writeHead(200, {
-        'Content-Type': 'video/mp4',
-        'Content-Length': stat.size,
-        'Content-Disposition': `attachment; filename="${outputName}"`,
-        'Access-Control-Expose-Headers': 'Content-Disposition',
+        'Content-Type': 'application/x-ndjson; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'X-Accel-Buffering': 'no',
       });
-      fs.createReadStream(outputPath).pipe(res);
+
+      emit({ type: 'start', outputName, outputPath });
+
+      try {
+        const result = await renderClip({
+          inputProps: renderProps,
+          outputPath,
+          signal: controller.signal,
+          onPhase: (phase) => emit({ type: 'phase', phase }),
+          onProgress: (progress, composition) => {
+            const now = Date.now();
+            const delta = progress.progress - lastProgressSent;
+            if (now - lastEventAt < 100 && delta < 0.005) return;
+            lastEventAt = now;
+            lastProgressSent = progress.progress;
+            emit({
+              type: 'progress',
+              progress: progress.progress,
+              renderedFrames: progress.renderedFrames,
+              encodedFrames: progress.encodedFrames,
+              totalFrames: composition.durationInFrames,
+              stitchStage: progress.stitchStage,
+              etaMs: progress.renderEstimatedTime || null,
+            });
+          },
+        });
+
+        completed = true;
+        emit({
+          type: 'done',
+          outputName,
+          outputPath,
+          downloadUrl: `/api/render/output/${outputName}`,
+          bytes: result.bytes,
+        });
+      } finally {
+        finished = true;
+        res.off('close', onClientClose);
+        if (!completed && fs.existsSync(outputPath)) {
+          fs.rmSync(outputPath, { force: true });
+        }
+        if (activeRenderAbort === controller) activeRenderAbort = null;
+      }
+    } catch (err) {
+      if (res.destroyed) return;
+      const message = err instanceof Error ? err.message : 'Render gagal.';
+      if (res.headersSent) {
+        if (!res.writableEnded) {
+          if (controller?.signal.aborted) {
+            sendEvent(res, { type: 'cancelled' });
+          } else {
+            sendEvent(res, { type: 'error', message });
+          }
+        }
+      } else {
+        sendJson(res, 500, { error: message });
+      }
+    } finally {
+      if (!res.destroyed && !res.writableEnded) res.end();
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname.startsWith('/api/render/output/')) {
+    let name = pathname.slice('/api/render/output/'.length);
+    try {
+      name = decodeURIComponent(name);
+    } catch {
+      // biarkan nama apa adanya; validasi regex tetap berlaku
+    }
+    const filePath = safeOutputPath(name);
+    if (!filePath) {
+      sendJson(res, 400, { error: 'Nama file hasil tidak valid.' });
+      return;
+    }
+    serveMp4WithRange(req, res, filePath);
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/render/reveal') {
+    if (process.platform !== 'win32') {
+      sendJson(res, 501, { error: 'Fitur ini hanya tersedia di Windows.' });
+      return;
+    }
+
+    try {
+      const body = await readJsonBody(req);
+      if (body.target === 'downloads') {
+        revealInExplorer(path.join(os.homedir(), 'Downloads'), false);
+      } else {
+        const filePath = safeOutputPath(body.name);
+        if (!filePath || !fs.existsSync(filePath)) {
+          sendJson(res, 404, { error: 'File hasil tidak ditemukan.' });
+          return;
+        }
+        revealInExplorer(filePath, true);
+      }
+      sendJson(res, 200, { ok: true });
     } catch (err) {
       sendJson(res, 500, {
-        error: err instanceof Error ? err.message : 'Failed to render video.',
+        error: err instanceof Error ? err.message : 'Gagal membuka folder.',
       });
     }
     return;

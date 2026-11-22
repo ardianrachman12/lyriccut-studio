@@ -11,6 +11,12 @@ import {
 import { DEFAULT_CAPTIONS, DEFAULT_DURATION_FRAMES } from '../data/defaultCaptions';
 import { validateCaptionsJson } from '../lib/captions';
 import { IMPORT_CAPTIONS_EVENT } from '../lib/lyricsApi';
+import {
+  startRender,
+  type RenderEvent,
+  type RenderProgress,
+  type RenderResult,
+} from '../lib/renderClient';
 import { FPS, formatDurationSec } from '../lib/format';
 import {
   loadStoredAspect,
@@ -65,14 +71,18 @@ export default function App() {
 
   const [isRendering, setIsRendering] = useState<boolean>(false);
   const [renderError, setRenderError] = useState<string>('');
-  const [renderSuccessMessage, setRenderSuccessMessage] = useState<string>('');
+  const [renderCancelled, setRenderCancelled] = useState<boolean>(false);
+  const [renderProgress, setRenderProgress] = useState<RenderProgress | null>(null);
+  const [renderResult, setRenderResult] = useState<RenderResult | null>(null);
 
   const hiddenVideoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const activeBlobUrlRef = useRef<string>('');
+  const renderControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => {
+      renderControllerRef.current?.abort();
       if (activeBlobUrlRef.current) {
         URL.revokeObjectURL(activeBlobUrlRef.current);
       }
@@ -115,7 +125,7 @@ export default function App() {
     if (!file) return;
 
     setRenderError('');
-    setRenderSuccessMessage('');
+    setRenderCancelled(false);
 
     if (activeBlobUrlRef.current) {
       URL.revokeObjectURL(activeBlobUrlRef.current);
@@ -198,12 +208,54 @@ export default function App() {
     setUploadMessage('');
     setCaptionsText(JSON.stringify(DEFAULT_CAPTIONS, null, 2));
     setOffsetMs(0);
+    renderControllerRef.current?.abort();
+    renderControllerRef.current = null;
     setRenderError('');
-    setRenderSuccessMessage('');
+    setRenderCancelled(false);
+    setRenderProgress(null);
+    setRenderResult(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
+
+  const triggerDownload = useCallback((url: string, name: string) => {
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = name;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  }, []);
+
+  const handleCancelRender = useCallback(() => {
+    renderControllerRef.current?.abort();
+  }, []);
+
+  const handleDownloadAgain = useCallback(() => {
+    if (!renderResult) return;
+    triggerDownload(renderResult.downloadUrl, renderResult.outputName);
+  }, [renderResult, triggerDownload]);
+
+  const handleReveal = useCallback(
+    async (target: 'output' | 'downloads') => {
+      try {
+        const response = await fetch('/api/render/reveal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: renderResult?.outputName, target }),
+        });
+        if (!response.ok) {
+          const body = (await response.json().catch(() => ({}))) as { error?: string };
+          throw new Error(body.error || `Gagal membuka folder (${response.status})`);
+        }
+        setRenderError('');
+      } catch (err) {
+        setRenderError(err instanceof Error ? err.message : 'Gagal membuka folder.');
+      }
+    },
+    [renderResult]
+  );
 
   const handleExportVideo = async () => {
     if (!validation.valid) {
@@ -211,9 +263,68 @@ export default function App() {
       return;
     }
 
+    if (renderControllerRef.current) {
+      setRenderError('Render sedang berjalan.');
+      return;
+    }
+
+    const controller = new AbortController();
+    renderControllerRef.current = controller;
+
+    const startedAt = Date.now();
     setIsRendering(true);
     setRenderError('');
-    setRenderSuccessMessage('');
+    setRenderCancelled(false);
+    setRenderResult(null);
+    setRenderProgress({
+      phase: 'preparing',
+      percent: 0,
+      renderedFrames: 0,
+      encodedFrames: 0,
+      totalFrames: durationInFrames,
+      etaMs: null,
+      startedAt,
+    });
+
+    const onEvent = (event: RenderEvent) => {
+      if (event.type === 'start') return;
+
+      if (event.type === 'phase') {
+        setRenderProgress((prev) => (prev ? { ...prev, phase: event.phase } : prev));
+        return;
+      }
+
+      if (event.type === 'progress') {
+        // Remotion mengirim stitchStage "encoding" sejak awal (encoding berjalan
+        // bersamaan dengan render). Tandai fase gabung hanya setelah semua frame selesai.
+        const phase: RenderProgress['phase'] =
+          event.renderedFrames >= event.totalFrames ? 'encoding' : 'rendering';
+        setRenderProgress({
+          phase,
+          percent: Math.max(0, Math.min(100, Math.round(event.progress * 100))),
+          renderedFrames: event.renderedFrames,
+          encodedFrames: event.encodedFrames,
+          totalFrames: event.totalFrames || durationInFrames,
+          etaMs: event.etaMs,
+          startedAt,
+        });
+        return;
+      }
+
+      if (event.type === 'done') {
+        setRenderProgress((prev) => (prev ? { ...prev, phase: 'done', percent: 100 } : prev));
+        setRenderResult(event);
+        triggerDownload(event.downloadUrl, event.outputName);
+        return;
+      }
+
+      if (event.type === 'cancelled') {
+        setRenderCancelled(true);
+        return;
+      }
+
+      setRenderError(event.message);
+    };
 
     try {
       const payload: LyricClipProps = {
@@ -227,44 +338,20 @@ export default function App() {
         overrides,
       };
 
-      const response = await fetch('/api/render', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const contentType = response.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-          const errJson = await response.json();
-          throw new Error(errJson.error || `Render failed (${response.status})`);
-        }
-        throw new Error(`Render request failed (${response.status}). Ensure "npm run local" is running.`);
-      }
-
-      const disposition = response.headers.get('content-disposition') || '';
-      const exportName = /filename="([^"]+)"/.exec(disposition)?.[1] || 'lyric-clip.mp4';
-      const mp4Blob = await response.blob();
-      const downloadUrl = URL.createObjectURL(mp4Blob);
-      const anchor = document.createElement('a');
-      anchor.href = downloadUrl;
-      anchor.download = exportName;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(downloadUrl);
-
-      setRenderSuccessMessage(`Exported and downloaded ${exportName}.`);
+      await startRender(payload, { onEvent, signal: controller.signal });
     } catch (err) {
-      setRenderError(
-        err instanceof Error
-          ? err.message
-          : 'Failed to export video. Check that the local render server is running.'
-      );
+      if (controller.signal.aborted) {
+        setRenderCancelled(true);
+      } else {
+        setRenderError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to export video. Check that the local render server is running.'
+        );
+      }
     } finally {
       setIsRendering(false);
+      if (renderControllerRef.current === controller) renderControllerRef.current = null;
     }
   };
 
@@ -384,8 +471,13 @@ export default function App() {
             disabled={isRendering || !validation.valid || !blobUrl}
             hasVideo={Boolean(blobUrl)}
             error={renderError}
-            successMessage={renderSuccessMessage}
+            cancelled={renderCancelled}
+            progress={renderProgress}
+            result={renderResult}
             onExport={handleExportVideo}
+            onCancel={handleCancelRender}
+            onDownloadAgain={handleDownloadAgain}
+            onReveal={handleReveal}
           />
         </section>
 
