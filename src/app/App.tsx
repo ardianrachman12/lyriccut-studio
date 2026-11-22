@@ -11,16 +11,20 @@ import {
 import { DEFAULT_CAPTIONS, DEFAULT_DURATION_FRAMES } from '../data/defaultCaptions';
 import { validateCaptionsJson } from '../lib/captions';
 import { IMPORT_CAPTIONS_EVENT } from '../lib/lyricsApi';
+import { FPS, formatDurationSec } from '../lib/format';
 import {
-  COMPOSITION_HEIGHT,
-  COMPOSITION_WIDTH,
-  FPS,
-  formatDurationSec,
-} from '../lib/format';
+  loadStoredAspect,
+  orientationLabel,
+  resolveOutputSize,
+  saveAspect,
+  type AspectSetting,
+  type VideoDims,
+} from '../lib/aspect';
 import { VideoUploadPanel, type UploadStatus } from './components/VideoUploadPanel';
 import { CaptionsEditor } from './components/CaptionsEditor';
 import { TemplatePicker } from './components/TemplatePicker';
 import { OverridePanel } from './components/OverridePanel';
+import { AspectRatioPanel } from './components/AspectRatioPanel';
 import { OffsetControl } from './components/OffsetControl';
 import { ExportPanel } from './components/ExportPanel';
 
@@ -54,6 +58,8 @@ export default function App() {
     JSON.stringify(DEFAULT_CAPTIONS, null, 2)
   );
   const [offsetMs, setOffsetMs] = useState<number>(0);
+  const [aspect, setAspect] = useState<AspectSetting>(loadStoredAspect);
+  const [videoDims, setVideoDims] = useState<VideoDims | null>(null);
   const [templateId, setTemplateId] = useState<string>(() => loadStoredStyle().templateId);
   const [overrides, setOverrides] = useState<TemplateOverrides>(() => loadStoredStyle().overrides);
 
@@ -89,6 +95,12 @@ export default function App() {
     window.addEventListener(IMPORT_CAPTIONS_EVENT, onImport);
     return () => window.removeEventListener(IMPORT_CAPTIONS_EVENT, onImport);
   }, []);
+
+  useEffect(() => {
+    saveAspect(aspect);
+  }, [aspect]);
+
+  const outputSize = useMemo(() => resolveOutputSize(aspect, videoDims), [aspect, videoDims]);
 
   const validation = useMemo(() => validateCaptionsJson(captionsText), [captionsText]);
   const [lastValidCaptions, setLastValidCaptions] = useState<Caption[]>(DEFAULT_CAPTIONS);
@@ -154,6 +166,9 @@ export default function App() {
   const handleHiddenMetadataLoaded = () => {
     const videoEl = hiddenVideoRef.current;
     if (!videoEl) return;
+    if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
+      setVideoDims({ width: videoEl.videoWidth, height: videoEl.videoHeight });
+    }
     const rawDuration = videoEl.duration;
     if (Number.isFinite(rawDuration) && rawDuration > 0) {
       setDurationInFrames(Math.max(1, Math.ceil(rawDuration * FPS)));
@@ -175,6 +190,7 @@ export default function App() {
       activeBlobUrlRef.current = '';
     }
     setBlobUrl('');
+    setVideoDims(null);
     setFileName('');
     setFileSize(0);
     setDurationInFrames(DEFAULT_DURATION_FRAMES);
@@ -205,6 +221,8 @@ export default function App() {
         captions: validation.captions,
         offsetMs,
         durationInFrames,
+        width: outputSize.width,
+        height: outputSize.height,
         templateId,
         overrides,
       };
@@ -286,9 +304,9 @@ export default function App() {
         </a>
 
         <div className="hidden md:flex items-center gap-3 text-xs text-slate-400 font-mono tabular-nums whitespace-nowrap">
-          <span>1080 × 1920</span>
+          <span>{outputSize.width} × {outputSize.height}</span>
           <span aria-hidden="true">·</span>
-          <span>9:16 Vertical</span>
+          <span>{outputSize.ratioLabel} {orientationLabel(outputSize.width, outputSize.height)}</span>
           <span aria-hidden="true">·</span>
           <span>{FPS} FPS</span>
           <span aria-hidden="true">·</span>
@@ -350,6 +368,15 @@ export default function App() {
 
           <div className="h-px bg-white/[0.07]" />
 
+          <AspectRatioPanel
+            setting={aspect}
+            output={outputSize}
+            video={videoDims}
+            onChange={setAspect}
+          />
+
+          <div className="h-px bg-white/[0.07]" />
+
           <OffsetControl offsetMs={offsetMs} onChange={setOffsetMs} />
 
           <ExportPanel
@@ -362,25 +389,32 @@ export default function App() {
           />
         </section>
 
-        <section className="lg:col-span-6 xl:col-span-7 bg-[#121824] border border-white/[0.08] rounded-xl p-6 flex flex-col items-center justify-center gap-4">
+        <section className="lg:col-span-6 xl:col-span-7 lg:sticky lg:top-6 lg:self-start bg-[#121824] border border-white/[0.08] rounded-xl p-6 flex flex-col items-center justify-center gap-4">
           <div className="w-full flex items-center justify-between text-xs text-slate-400">
             <span className="font-display font-semibold text-slate-200 text-sm">
-              Live 9:16 Preview
+              Live Preview ({outputSize.ratioLabel})
             </span>
             <span className="font-mono tabular-nums">
-              {COMPOSITION_WIDTH}×{COMPOSITION_HEIGHT} · {formatDurationSec(durationInFrames)}s
+              {outputSize.width}×{outputSize.height} · {formatDurationSec(durationInFrames)}s
             </span>
           </div>
 
           <div className="w-full flex-1 flex items-center justify-center min-h-[480px]">
-            <div className="w-full max-w-[360px] sm:max-w-[380px] aspect-[9/16] rounded-xl overflow-hidden border border-white/[0.12] bg-[#05080f] shadow-2xl">
+            <div
+              className="rounded-xl overflow-hidden border border-white/[0.12] bg-[#05080f] shadow-2xl"
+              style={{
+                aspectRatio: `${outputSize.width} / ${outputSize.height}`,
+                width: `min(100%, 760px, calc(68vh * ${outputSize.width / outputSize.height}))`,
+              }}
+            >
               <Player
+                key={`${outputSize.width}x${outputSize.height}`}
                 component={LyricClipVideo}
                 inputProps={playerInputProps}
                 durationInFrames={durationInFrames}
                 fps={FPS}
-                compositionWidth={COMPOSITION_WIDTH}
-                compositionHeight={COMPOSITION_HEIGHT}
+                compositionWidth={outputSize.width}
+                compositionHeight={outputSize.height}
                 style={{ width: '100%', height: '100%' }}
                 controls
                 loop

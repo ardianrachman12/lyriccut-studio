@@ -45,7 +45,7 @@ export type LyricTemplate = {
 };
 
 export type TemplateOverrides = {
-  fontScale?: number;         // 0.7 .. 1.5, pengali terhadap fontSize template
+  fontScale?: number;         // 0.1 .. 1.5, pengali terhadap fontSize template
   primaryColor?: string;      // menggantikan colors.active
   vertical?: 'top' | 'middle' | 'bottom';
 };
@@ -91,7 +91,7 @@ Nilai warna dan font final ditentukan saat implementasi, lalu dicek langsung di 
 
 - Panel **Template**: grid kartu kecil (nama + contoh teks bergaya template). Klik untuk memilih.
 - Panel **Override** (di bawah template terpilih):
-  - Slider ukuran font (70%–150%).
+  - Slider ukuran font (10%–150%).
   - Color picker warna utama + tombol "reset ke warna template".
   - Segmented control posisi: Atas / Tengah / Bawah.
 - Tombol **Reset override**.

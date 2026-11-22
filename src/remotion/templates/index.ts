@@ -21,7 +21,7 @@ export const LYRIC_TEMPLATES: LyricTemplate[] = [
   classicSub,
 ];
 
-export const FONT_SCALE_MIN = 0.7;
+export const FONT_SCALE_MIN = 0.1;
 export const FONT_SCALE_MAX = 1.5;
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;

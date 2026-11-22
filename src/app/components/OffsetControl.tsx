@@ -17,7 +17,7 @@ export const OffsetControl: React.FC<Props> = ({ offsetMs, onChange }) => (
         className="font-display text-sm font-semibold text-slate-100 inline-flex items-center gap-2"
       >
         <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
-        04. Offset Timing (ms)
+        05. Offset Timing (ms)
       </label>
       <span className="font-mono text-sm font-semibold tabular-nums text-sky-400">
         {offsetMs > 0 ? `+${offsetMs} ms` : `${offsetMs} ms`}

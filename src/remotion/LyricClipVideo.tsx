@@ -10,6 +10,9 @@ export type LyricClipProps = {
   captions: Caption[];
   offsetMs?: number;
   durationInFrames: number;
+  /** Output size; defaults to 1080x1920. Applied through calculateMetadata. */
+  width?: number;
+  height?: number;
   templateId?: string;
   overrides?: TemplateOverrides;
 };

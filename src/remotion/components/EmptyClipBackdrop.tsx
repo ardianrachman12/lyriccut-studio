@@ -1,9 +1,14 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+
 export const EmptyClipBackdrop: React.FC = () => {
   const frame = useCurrentFrame();
-  const { fps, durationInFrames } = useVideoConfig();
+  const { fps, durationInFrames, width, height } = useVideoConfig();
+  const unit = Math.min(width, height) / 1080;
+  const divisor = gcd(width, height) || 1;
+  const ratioText = `${width / divisor}:${height / divisor}`;
 
   const shiftY = interpolate(frame, [0, durationInFrames], [0, -60], {
     extrapolateRight: 'clamp',
@@ -34,35 +39,35 @@ export const EmptyClipBackdrop: React.FC = () => {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 18,
+          gap: 18 * unit,
           opacity: 0.72,
-          paddingLeft: 64,
-          paddingRight: 64,
+          paddingLeft: 64 * unit,
+          paddingRight: 64 * unit,
           textAlign: 'center',
         }}
       >
         <div
           style={{
-            width: 88,
-            height: 88,
-            borderRadius: 24,
+            width: 88 * unit,
+            height: 88 * unit,
+            borderRadius: 24 * unit,
             border: '2px solid rgba(56, 189, 248, 0.35)',
             backgroundColor: 'rgba(15, 23, 42, 0.8)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#38bdf8',
-            fontSize: 34,
+            fontSize: 34 * unit,
             fontWeight: 700,
             fontFamily: 'Plus Jakarta Sans, sans-serif',
           }}
         >
-          9:16
+          {ratioText}
         </div>
         <div
           style={{
             color: '#e2e8f0',
-            fontSize: 34,
+            fontSize: 34 * unit,
             fontWeight: 600,
             fontFamily: 'Plus Jakarta Sans, sans-serif',
             letterSpacing: '-0.02em',
@@ -73,7 +78,7 @@ export const EmptyClipBackdrop: React.FC = () => {
         <div
           style={{
             color: '#94a3b8',
-            fontSize: 24,
+            fontSize: 24 * unit,
             fontFamily: 'DM Sans, sans-serif',
           }}
         >

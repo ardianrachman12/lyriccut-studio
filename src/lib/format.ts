@@ -1,6 +1,4 @@
 export const FPS = 30;
-export const COMPOSITION_WIDTH = 1080;
-export const COMPOSITION_HEIGHT = 1920;
 
 export const formatBytes = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;

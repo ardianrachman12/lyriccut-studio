@@ -11,7 +11,7 @@ export type LyricTemplate = {
     letterSpacing: string;
     lineHeight: number;
   };
-  /** px at 1080x1920 composition resolution */
+  /** px when the short side of the composition is 1080 (scaled by the stage for other sizes) */
   fontSize: number;
   colors: {
     active: string;
@@ -24,7 +24,8 @@ export type LyricTemplate = {
   scrim: string | null;
   /** Rounded dark box behind the whole lyric page. */
   box?: { background: string; radius: number; paddingX: number; paddingY: number };
-  position: { vertical: VerticalPosition; offsetPx: number; maxWidth: number };
+  /** offsetRatio: fraction of frame height; maxWidthRatio: fraction of frame width. */
+  position: { vertical: VerticalPosition; offsetRatio: number; maxWidthRatio: number };
   uppercase: boolean;
   animation: { enter: 'rise' | 'fade' | 'pop'; activeScale: number };
   /** Preview chip colors for the template picker. */

@@ -9,16 +9,21 @@ type LyricStageProps = {
   style: ResolvedLyricStyle;
 };
 
-const TOP_PADDING_PX = 240;
-const FALLBACK_BOTTOM_PADDING_PX = 210;
+const TOP_PADDING_RATIO = 240 / 1920;
+const FALLBACK_BOTTOM_PADDING_RATIO = 210 / 1920;
+const BASE_SHORT_SIDE = 1080;
 
 const flipScrim = (scrim: string, vertical: string): string =>
   vertical === 'top' ? scrim.replace('to top', 'to bottom') : scrim;
 
 export const LyricStage: React.FC<LyricStageProps> = ({ captions, offsetMs, style }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const { template, fontFamily, fontSize, activeColor, vertical } = style;
+  const { fps, width, height } = useVideoConfig();
+  const { template, fontFamily, activeColor, vertical } = style;
+
+  // All template px values are authored for a 1080 short side; scale for other sizes.
+  const unit = Math.min(width, height) / BASE_SHORT_SIDE;
+  const fontSize = Math.round(style.fontSize * unit);
 
   const currentTimeMs = (frame / fps) * 1000 - offsetMs;
 
@@ -83,9 +88,10 @@ export const LyricStage: React.FC<LyricStageProps> = ({ captions, offsetMs, styl
       : 'none';
 
   const bottomPadding =
-    template.position.vertical === 'bottom'
-      ? template.position.offsetPx
-      : FALLBACK_BOTTOM_PADDING_PX;
+    height *
+    (template.position.vertical === 'bottom'
+      ? template.position.offsetRatio
+      : FALLBACK_BOTTOM_PADDING_RATIO);
 
   const justifyContent =
     vertical === 'top' ? 'flex-start' : vertical === 'middle' ? 'center' : 'flex-end';
@@ -105,9 +111,9 @@ export const LyricStage: React.FC<LyricStageProps> = ({ captions, offsetMs, styl
         style={{
           justifyContent,
           alignItems: 'center',
-          paddingLeft: 64,
-          paddingRight: 64,
-          paddingTop: vertical === 'top' ? TOP_PADDING_PX : 0,
+          paddingLeft: 64 * unit,
+          paddingRight: 64 * unit,
+          paddingTop: vertical === 'top' ? height * TOP_PADDING_RATIO : 0,
           paddingBottom: vertical === 'bottom' ? bottomPadding : 0,
           pointerEvents: 'none',
         }}
@@ -123,13 +129,13 @@ export const LyricStage: React.FC<LyricStageProps> = ({ captions, offsetMs, styl
               alignItems: 'baseline',
               columnGap: Math.round(fontSize * 0.26),
               rowGap: Math.round(fontSize * 0.15),
-              maxWidth: template.position.maxWidth,
+              maxWidth: width * template.position.maxWidthRatio,
               textAlign: 'center',
               ...(template.box
                 ? {
                     background: template.box.background,
-                    borderRadius: template.box.radius,
-                    padding: `${template.box.paddingY}px ${template.box.paddingX}px`,
+                    borderRadius: template.box.radius * unit,
+                    padding: `${template.box.paddingY * unit}px ${template.box.paddingX * unit}px`,
                   }
                 : {}),
             }}
@@ -185,7 +191,7 @@ export const LyricStage: React.FC<LyricStageProps> = ({ captions, offsetMs, styl
                       : template.shadow.idle,
                     ...(template.stroke
                       ? {
-                          WebkitTextStroke: `${template.stroke.width}px ${template.stroke.color}`,
+                          WebkitTextStroke: `${template.stroke.width * unit}px ${template.stroke.color}`,
                           paintOrder: 'stroke fill',
                         }
                       : {}),

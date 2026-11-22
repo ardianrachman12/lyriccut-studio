@@ -12,11 +12,22 @@ const OUT_DIR = path.join(ROOT_DIR, 'out');
 const UPLOADED_CLIP_NAME = 'uploaded-clip.mp4';
 const RENDER_PROPS_PATH = path.join(ROOT_DIR, '.render-props.json');
 const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-const makeOutputName = () => {
+
+const DEFAULT_SIZE = { width: 1080, height: 1920 };
+
+// H.264 needs even dimensions; keep within sane bounds. Falls back to 1080x1920.
+const sanitizeSize = (rawWidth, rawHeight) => {
+  const w = Number(rawWidth);
+  const h = Number(rawHeight);
+  const ok = (n) => Number.isInteger(n) && n % 2 === 0 && n >= 240 && n <= 4096;
+  return ok(w) && ok(h) ? { width: w, height: h } : DEFAULT_SIZE;
+};
+
+const makeOutputName = (size) => {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-  return `lyric-clip-${stamp}.mp4`;
+  return `lyric-clip-${size.width}x${size.height}-${stamp}.mp4`;
 };
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
@@ -27,7 +38,7 @@ const sanitizeOverrides = (raw) => {
   if (!raw || typeof raw !== 'object') return out;
   const scale = Number(raw.fontScale);
   if (Number.isFinite(scale) && scale > 0) {
-    out.fontScale = Math.min(1.5, Math.max(0.7, scale));
+    out.fontScale = Math.min(1.5, Math.max(0.1, scale));
   }
   if (typeof raw.primaryColor === 'string' && HEX_COLOR.test(raw.primaryColor)) {
     out.primaryColor = raw.primaryColor;
@@ -149,7 +160,7 @@ const runRemotionRender = (outputName) =>
   });
 
 const server = http.createServer(async (req, res) => {
-  // Only local browser origins may call this server.
+  // Only local browser origins may call this server (it spends the Gemini quota).
   const origin = req.headers.origin;
   if (origin) {
     if (!LOCAL_ORIGIN.test(origin)) {
@@ -240,10 +251,13 @@ const server = http.createServer(async (req, res) => {
       }
 
       const publicVideoUrl = `http://127.0.0.1:${PORT}/uploads/${cleanName}`;
+      const size = sanitizeSize(body.width, body.height);
       const renderProps = {
         videoSrc: publicVideoUrl,
         captions: Array.isArray(body.captions) ? body.captions : [],
         offsetMs: Number(body.offsetMs) || 0,
+        width: size.width,
+        height: size.height,
         durationInFrames: Math.max(1, Math.ceil(Number(body.durationInFrames) || 300)),
         templateId: typeof body.templateId === 'string' ? body.templateId : undefined,
         overrides: sanitizeOverrides(body.overrides),
@@ -251,7 +265,7 @@ const server = http.createServer(async (req, res) => {
 
       fs.writeFileSync(RENDER_PROPS_PATH, JSON.stringify(renderProps, null, 2), 'utf8');
 
-      const outputName = makeOutputName();
+      const outputName = makeOutputName(size);
       const outputPath = path.join(OUT_DIR, outputName);
       await runRemotionRender(outputName);
 
